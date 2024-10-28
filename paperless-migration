@@ -73,18 +73,18 @@ receipts[0..9].each do |receipt|
             puts "Correspondent: #{source_correspondent} => #{correspondent_id}"
         end
 
-        tags = [ SOURCE_TAG_ID ]
-        tags << category_tag_id if category_tag_id
-
+        payload = [
+            [ :document, File.open(file_path) ], 
+            [ :title, receipt["TITLE"] ],
+            [ :created, receipt["DATE"]], 
+            [ :correspondent, correspondent_id], 
+            [ :tags, SOURCE_TAG_ID ]
+        ]
+        payload << [ :tags, category_tag_id ] if category_tag_id
+  
         RestClient.post(
             "#{ENDPOINT}/api/documents/post_document/",
-            { 
-                document: File.open(file_path),
-                title: receipt["TITLE"],
-                created: receipt["DATE"],
-                correspondent: correspondent_id,
-                tags: tags,
-            },
+            RestClient::ParamsArray.new(payload),
             { Authorization: "Token #{TOKEN}" }
         )
     rescue => e

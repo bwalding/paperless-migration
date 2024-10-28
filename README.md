@@ -10,23 +10,23 @@ This tooling assists in the migration from Mariner Software's Paperless to Paper
 ## Status
 
 * Basic migration works
-* MSPL loses the Organization (should be straightforward to fix this - it is separate to Merchant)
+* MSPL loses the Organization (should be straightforward to fix this - it is separate to Merchant inside SQLite)
 
 ## Motivation
 
-Mariner software is apparently no longer business, and as such migrating away from this software is a priority
+Mariner software is apparently no longer business, and as such migrating away from this software is a priority (before it doesn't work after a system upgrade).
 
 ## Storage
 
-### Mariner Software Paperless (MSP)
+### Mariner Software Paperless
 
 MSP stores all attribute data in a SQLite database, and the related PDFs are stored on the filesystem in a date based layout.
 
-See `receipts.sql` for an example of the query we use to extract all the data.
+See `receipts.sql` for the query we use to extract all the data.
 
 ### Paperless-NGX
 
-PNGX offers a REST API to upload documents, correspondents, tags etc and configure them
+PNGX offers a REST API to upload documents, correspondents, tags etc and configure them.
 
 ## Preparation
 
