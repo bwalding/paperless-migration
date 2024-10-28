@@ -1,0 +1,10 @@
+---
+source:
+    type: "mariner-software-paperless"
+    library: "~/Documents/Receipt\ Library.paperless"
+
+target:
+    type: "paperless-ngx"
+    url: "http://localhost:8000"
+    # Issue a token up in the top right hand corner of your screen
+    token: "your token here"

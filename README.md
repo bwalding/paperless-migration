@@ -2,34 +2,43 @@
 
 This tooling assists in the migration from Mariner Software's Paperless to Paperless-NG.
 
+## Naming
+
+* MSP - Mariner Software Paperless
+* PNGX - Paperless-NGX
+
+## Status
+
+* Basic migration works
+* MSPL loses the Organization (should be straightforward to fix this - it is separate to Merchant)
 
 ## Motivation
 
 Mariner software is apparently no longer business, and as such migrating away from this software is a priority
 
-
 ## Storage
 
-### Mariner Software Paperless (MSPL)
+### Mariner Software Paperless (MSP)
 
-MSPL stores all attribute data in a SQLite database, and the related PDFs are stored on the filesystem in a date based layout.
+MSP stores all attribute data in a SQLite database, and the related PDFs are stored on the filesystem in a date based layout.
 
-### Paperless-NG (PLNG)
+See `receipts.sql` for an example of the query we use to extract all the data.
 
-PLNG offers a REST API to upload documents and configure them
+### Paperless-NGX
+
+PNGX offers a REST API to upload documents, correspondents, tags etc and configure them
 
 ## Preparation
 
-Backup everything and ensure you can recover.
+Backup everything and ensure you can recover in the event of a catastrophe.
 
-The most likely issue is the migration tooling to terminate, leaving the most recent migration incomplete.  MSPL is fairly robust at restarting imports (skipping the previous one).
-
+The most likely issue is the migration tooling to terminate, leaving the most recent migration incomplete.  PNGX is fairly robust at restarting imports (skipping the previous one). However the metadata won't be updated. You are better off deleting everything and starting again.
 
 ## Approach
 
 ### Acquire list of migrations
 
-Read the SQLite database and extract required metadata about each file that needs to be migrate
+Read the SQLite database and extract required metadata about each file that needs to be migrated.
 
 ### Verify
 
@@ -42,12 +51,11 @@ Verify that all attributes have a target attribute in PLNG.
 
 If the target already exists, skip the file. We will assume that the attributes are correct once the upload is done.  This might be a bad assumption.
 
-
 ### Move
 
 Upload each file, setting all attributes on the target file.
 
-Include the UUID from the MSPL environment so we can find the location of the file on the target side.
+Include the ID from the MSPL receipt (`Z_PK`) so we can find the location of the file on the target side.
 
 ### Attributes
 

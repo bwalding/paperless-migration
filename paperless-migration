@@ -1,0 +1,94 @@
+#!/usr/bin/env ruby
+require 'bundler/setup'
+Bundler.require
+
+require 'yaml'
+require 'base64'
+require 'rest-client'
+require 'json'
+
+require './lib/cache.rb'
+
+SOURCE_TAG_NAME = "mariner-software-paperless"
+
+@conf = YAML.load_file("paperless-migration.conf")
+
+ENDPOINT = @conf["target"]["url"]
+TOKEN = @conf["target"]["token"]
+source_path = Pathname.new(File.expand_path(@conf["source"]["library"]))
+
+# Configure Paperless-NGX lookups
+correspondent_cache = LookupCache.new("correspondents", "#{ENDPOINT}/api/correspondents/", TOKEN, "id", "name")
+tag_cache = LookupCache.new("tags", "#{ENDPOINT}/api/tags/", TOKEN, "id", "name")
+SOURCE_TAG_ID = tag_cache.find_or_create(SOURCE_TAG_NAME)
+
+
+# The Ruby binding doesn't really work very well on complex queries
+# This extracts the data into a JSON file so we can process it in Ruby
+sqlite_file = source_path.join("DocumentWallet.documentwalletsql")
+puts "SQLite: #{sqlite_file}"
+cmd = "sqlite3 \"#{sqlite_file}\" -init receipts.sql .quit > receipts.json"
+if not system(cmd)
+    puts "Error running sqlite3"
+    puts "Command: #{cmd}"
+end
+receipts = JSON.parse(File.read("receipts.json"))
+
+def get_category(category,subcategory)
+    if subcategory.nil? || subcategory == ""
+        return category
+    else
+        return "#{category}/#{subcategory}"
+    end
+end
+
+puts "Receipts = #{receipts.length}"
+receipts[0..9].each do |receipt|
+    puts "=================================="
+    puts "#{receipt["ID"]} - #{receipt["PATH"]}"
+    puts "   Date => #{receipt["DATE"]}"
+
+    # Import date isn't particularly interesting
+    # puts "   Import Date => #{receipt["IMPORT_DATE"]}"
+    puts "   Title => #{receipt["TITLE"]}"
+
+    category = get_category(receipt["CATEGORY"], receipt["SUBCATEGORY"])
+    puts "   Category => #{category}"
+    puts "   Tags => #{receipt["TAGS"]}"
+    puts "   Notes => #{receipt["NOTES"]}"
+    puts "   Path => #{receipt["PATH"]}"
+
+    if category == "" || category.nil?
+        category_tag_id = nil
+    else 
+        category_tag_id = tag_cache.find_or_create(category)
+    end
+
+    file_path = source_path.join(receipt["PATH"])
+    begin
+        source_correspondent = receipt["TITLE"]
+        correspondent_id = nil
+        unless source_correspondent.nil?
+            correspondent_id = correspondent_cache.find_or_create(source_correspondent)
+            puts "Correspondent: #{source_correspondent} => #{correspondent_id}"
+        end
+
+        tags = [ SOURCE_TAG_ID ]
+        tags << category_tag_id if category_tag_id
+
+        RestClient.post(
+            "#{ENDPOINT}/api/documents/post_document/",
+            { 
+                document: File.open(file_path),
+                title: receipt["TITLE"],
+                created: receipt["DATE"],
+                correspondent: correspondent_id,
+                tags: tags,
+            },
+            { Authorization: "Token #{TOKEN}" }
+        )
+    rescue => e
+        puts "Error: #{e} #{e.http_body}"
+        break
+    end
+end
