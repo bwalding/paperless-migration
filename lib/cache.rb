@@ -14,15 +14,18 @@ class LookupCache
     end
 
     def load()
-        puts "Getting #{@endpoint} with #{@headers}"
-        data_json = RestClient::Request.execute(method: :get, url: @endpoint,
-                            headers: @headers)
-
-        data = JSON.parse(data_json)
         @data = {}
-        data['results'].each do |d|
-            @data[d[name_field]] = d[id_field]
+        puts "Getting #{@endpoint} with #{@headers}"
+        url = @endpoint
+        while url
+            data_json = RestClient::Request.execute(method: :get, url: url, headers: @headers)
+            data = JSON.parse(data_json)
+            data['results'].each do |d|
+                @data[d[name_field]] = d[id_field]
+            end
+            url = data['next']
         end
+        puts "#{@name} => Loaded #{@data.length} items"
         nil
     end
 
@@ -39,6 +42,8 @@ class LookupCache
             @data[name] = new_item["id"]
         end
         @data[name]
+    rescue => e
+        raise "#{@name} Failure to create new item: #{e}"
     end
     
 end

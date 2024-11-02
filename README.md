@@ -65,3 +65,17 @@ See the verify section for some concepts here.
 ### Checkpoint
 
 Once all files for a given day are complete, write a checkpoint file so we don't have to recheck that day.
+
+
+## Schema
+
+# Receipt
+
+The Merchant is stored in the Title field
+
+# Document
+
+The Title is stored in the Title field
+The Merchant is stored in the Organization field
+
+# Data Type

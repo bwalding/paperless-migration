@@ -43,14 +43,17 @@ def get_category(category,subcategory)
 end
 
 puts "Receipts = #{receipts.length}"
-receipts[0..9].each do |receipt|
+receipts[0..99].each do |receipt|
     puts "=================================="
     puts "#{receipt["ID"]} - #{receipt["PATH"]}"
     puts "   Date => #{receipt["DATE"]}"
 
     # Import date isn't particularly interesting
     # puts "   Import Date => #{receipt["IMPORT_DATE"]}"
+    type = receipt["TYPE"]
+    puts "   Type => #{type}"
     puts "   Title => #{receipt["TITLE"]}"
+    puts "   Organization => #{receipt["ORGANIZATION"]}"
 
     category = get_category(receipt["CATEGORY"], receipt["SUBCATEGORY"])
     puts "   Category => #{category}"
@@ -66,7 +69,7 @@ receipts[0..9].each do |receipt|
 
     file_path = source_path.join(receipt["PATH"])
     begin
-        source_correspondent = receipt["TITLE"]
+        source_correspondent = receipt["ORGANIZATION"]
         correspondent_id = nil
         unless source_correspondent.nil?
             correspondent_id = correspondent_cache.find_or_create(source_correspondent)
