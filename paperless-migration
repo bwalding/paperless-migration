@@ -9,7 +9,7 @@ require 'json'
 
 require './lib/cache.rb'
 
-SOURCE_TAG_NAME = "mariner-software-paperless"
+SOURCE_TAG_NAME = "msp-import"
 
 @conf = YAML.load_file("paperless-migration.conf")
 
@@ -33,6 +33,17 @@ if not system(cmd)
     puts "Command: #{cmd}"
 end
 receipts = JSON.parse(File.read("receipts.json"))
+LAST_LOADED_NAME = "last-loaded.json"
+
+last_id = 0
+if File.exist?(LAST_LOADED_NAME)
+    last_loaded = JSON.parse(File.read(LAST_LOADED_NAME))
+    last_id = last_loaded["last_id"]
+    puts "Last ID: #{last_id}"
+    receipts = receipts.select { |r| r["ID"] > last_id }
+else 
+    last_id = 0
+end
 
 def get_category(category,subcategory)
     if subcategory.nil? || subcategory == ""
@@ -42,8 +53,13 @@ def get_category(category,subcategory)
     end
 end
 
-puts "Receipts = #{receipts.length}"
-receipts[0..99].each do |receipt|
+max_load = 100000
+loaded = 0
+puts "Receipts to load = #{receipts.length}"
+receipts.each do |receipt|
+    loaded += 1
+    break if loaded > max_load
+
     puts "=================================="
     puts "#{receipt["ID"]} - #{receipt["PATH"]}"
     puts "   Date => #{receipt["DATE"]}"
@@ -69,7 +85,7 @@ receipts[0..99].each do |receipt|
 
     file_path = source_path.join(receipt["PATH"])
     begin
-        source_correspondent = receipt["ORGANIZATION"]
+        source_correspondent = receipt["ORGANIZATION"]&.strip
         correspondent_id = nil
         unless source_correspondent.nil?
             correspondent_id = correspondent_cache.find_or_create(source_correspondent)
@@ -90,6 +106,7 @@ receipts[0..99].each do |receipt|
             RestClient::ParamsArray.new(payload),
             { Authorization: "Token #{TOKEN}" }
         )
+        IO.write(LAST_LOADED_NAME, JSON.pretty_generate({ last_id: receipt["ID"] }))
     rescue => e
         puts "Error: #{e} #{e.http_body}"
         break
